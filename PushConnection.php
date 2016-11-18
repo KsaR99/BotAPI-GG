@@ -2,6 +2,7 @@
 /*******
 Biblioteka implementująca BotAPI GG http://boty.gg.pl/
 Copyright (C) 2013 GG Network S.A. Marcin Bagiński <marcin.baginski@firma.gg.pl>
+Modified by KsaR 2016 <https://github.com/KsaR99>
 
 This library is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -10,17 +11,16 @@ the Free Software Foundation, either version 3 of the License, or
 
 This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
 GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with this program. If not, see<http://www.gnu.org/licenses/>.
 *******/
 
-require_once(dirname(__FILE__).'/MessageBuilder.php');
+require_once __DIR__.'/MessageBuilder.php';
 
 define('CURL_VERBOSE', false); // zmienić na true, jeśli chce się uzyskać dodatkowe informacje debugowe
-
 
 define('STATUS_AWAY', 'away');
 define('STATUS_FFC', 'ffc');
@@ -28,230 +28,235 @@ define('STATUS_BACK', 'back');
 define('STATUS_DND', 'dnd');
 define('STATUS_INVISIBLE', 'invisible');
 
+PushConnection::$BOTAPI_LOGIN = '';
+PushConnection::$BOTAPI_PASSWORD = '';
 
-PushConnection::$BOTAPI_LOGIN='';
-PushConnection::$BOTAPI_PASSWORD='';
 /**
  * @brief Klasa reprezentująca połączenie PUSH z BotMasterem.
  * Autoryzuje połączenie w trakcie tworzenia i wysyła wiadomości do BotMastera.
  */
 class PushConnection
 {
-	/**
-	 * Obiekt autoryzacji
-	 *
-	 * Typ BotAPIAuthorization
-	 */
-	public static $BOTAPI_LOGIN=NULL;
-	public static $BOTAPI_PASSWORD=NULL;
-	static $lastGg;
-	static $lastAuthorization;
-	private $authorization;
-	private $gg;
+		/**
+		 * Obiekt autoryzacji
+		 *
+		 * Typ BotAPIAuthorization
+		 */
+		public static $BOTAPI_LOGIN = null;
+		public static $BOTAPI_PASSWORD = null;
+		static $lastGg;
+		static $lastAuthorization;
+		private $authorization;
+		private $gg;
 
-	/**
-	 * Konstruktor PushConnection - przeprowadza autoryzację
-	 *
-	 * @param int $botGGNumber numer GG bota
-	 * @param string $userName login
-	 * @param string $password hasło
-	 */
-	public function __construct($botGGNumber=NULL, $userName=NULL, $password=NULL)
-	{
-		if (empty(self::$lastAuthorization) || !self::$lastAuthorization->isAuthorized() || ($botGGNumber!=self::$lastGg && ($botGGNumber!==NULL))) {
-			if ($userName===NULL && self::$BOTAPI_LOGIN!==NULL) $userName=self::$BOTAPI_LOGIN;
-			if ($password===NULL && self::$BOTAPI_PASSWORD!==NULL) $password=self::$BOTAPI_PASSWORD;
+		/**
+		 * Konstruktor PushConnection - przeprowadza autoryzację
+		 *
+		 * @param int $botGGNumber numer GG bota
+		 * @param string $userName login
+		 * @param string $password hasło
+		 */
+		public function __construct($botGGNumber = null, $userName = null, $password = null)
+		{
+				if (empty(self::$lastAuthorization) || !self::$lastAuthorization->isAuthorized()
+				|| ($botGGNumber != self::$lastGg && $botGGNumber !== null)) {
+						if ($userName === null && self::$BOTAPI_LOGIN !== null) {
+								$userName = self::$BOTAPI_LOGIN;
+						}
+						if ($password === null && self::$BOTAPI_PASSWORD !== null) {
+								$password = self::$BOTAPI_PASSWORD;
+						}
 
-			self::$lastGg=$botGGNumber;
-			self::$lastAuthorization=new BotAPIAuthorization(self::$lastGg, $userName, $password);
+						self::$lastGg = $botGGNumber;
+						self::$lastAuthorization = new BotAPIAuthorization(self::$lastGg, $userName, $password);
+				}
+
+				$this->gg = self::$lastGg;
+				$this->authorization = self::$lastAuthorization;
 		}
 
-		$this->gg=self::$lastGg;
-		$this->authorization=self::$lastAuthorization;
-	}
+		/**
+		 * Wysyła wiadomość (obiekt lub tablicę obiektów MessageBuilder) do BotMastera.
+		 *
+		 * @param array,MessageBuilder $message obiekt lub tablica obiektów MessageBuilder
+		 */
+		public function push($messages)
+		{
+				if (!$this->authorization->isAuthorized()) {
+						return false;
+				}
+				if (!is_array($messages)) {
+						$messages = [$messages];
+				}
 
-	/**
-	 * Wysyła wiadomość (obiekt lub tablicę obiektów MessageBuilder) do BotMastera.
-	 *
-	 * @param array,MessageBuilder $message obiekt lub tablica obiektów MessageBuilder
-	 */
-	public function push($messages)
-	{
-		if (!$this->authorization->isAuthorized())
-			return false;
+				$count = 0;
+				$data = $this->authorization->getServerAndToken();
 
+				foreach ($messages as $message) {
+						$ch = $this->getSingleCurlHandle();
+						$opt = [
+								CURLOPT_URL => 'https://'.$data['server'].'/sendMessage/'.$this->gg,
+								CURLOPT_POSTFIELDS => 'to='.implode(',', $message->recipientNumbers).'&msg='.urlencode($message->getProtocolMessage()),
+								CURLOPT_HTTPHEADER => [
+										'BotApi-Version: '.BOTAPI_VERSION,
+										'Token: '.$data['token'],
+										'Send-to-offline: '.((int)$message->sendToOffline)
+								]
+						];
 
-		$count=0;
-		if (!is_array($messages))
-			$messages=array($messages);
+						curl_setopt_array($ch, $opt);
+						$r = curl_exec($ch);
+						curl_close($ch);
 
+						$count+= (strpos($r, '<result><status>0</status></result>') !== false);
+				}
 
-		$data=$this->authorization->getServerAndToken();
-		foreach ($messages as $message) {
-			$ch=$this->getSingleCurlHandle();
-
-			curl_setopt($ch, CURLOPT_HTTPHEADER, array('BotApi-Version: '.BOTAPI_VERSION, 'Token: '.$data['token'], 'Send-to-offline: '.(($message->sendToOffline) ? '1' : '0')));
-			curl_setopt($ch, CURLOPT_URL, 'https://'.$data['server'].'/sendMessage/'.$this->gg);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, 'to='.join(',', $message->recipientNumbers).'&msg='.urlencode($message->getProtocolMessage()));
-
-			$r=curl_exec($ch);
-			$s=curl_getinfo($ch);
-			curl_close($ch);
-
-			$count+=(strpos($r, '<result><status>0</status></result>')!==false);
+				return $count;
 		}
 
+		/**
+		 * Ustawia opis botowi.
+		 *
+		 * @param string $desc Treść opisu
+		 * @param string $status Typ opisu
+		 */
+		public function setStatus($desc, $status = '')
+		{
+				if (!$this->authorization->isAuthorized()) {
+						return false;
+				}
 
-		return $count;
-	}
+				$desc = urlencode($desc);
 
-	/**
-	 * Ustawia opis botowi.
-	 *
-	 * @param string $statusDescription Treść opisu
-	 * @param string $status Typ opisu
-	 * @param null $graphic Nieużywane. Zostaje dla kompatybilności
-	 */
-	public function setStatus($statusDescription, $status='', $graphic=NULL)
-	{
-		if (!$this->authorization->isAuthorized())
-			return false;
+				switch ($status) {
+						case STATUS_AWAY: $h = empty($desc) ? 3 : 5; break;
+						case STATUS_FFC: $h = empty($desc) ? 23 : 24; break;
+						case STATUS_BACK: $h = empty($desc) ? 2 : 4; break;
+						case STATUS_DND: $h = empty($desc) ? 33 : 34; break;
+						case STATUS_INVISIBLE: $h = empty($desc) ? 20 : 22; break;
+						default: $h = 0;
+				}
 
+				$data = $this->authorization->getServerAndToken();
+				$ch = $this->getSingleCurlHandle();
+				$opt = [
+						CURLOPT_URL => 'https://'.$data['server'].'/setStatus/'.$this->gg,
+						CURLOPT_POSTFIELDS => 'status='.$h.'&desc='.$desc,
+						CURLOPT_HTTPHEADER => [
+								'BotApi-Version: '.BOTAPI_VERSION,
+								'Token: '.$data['token']
+						]
+				];
 
-		$statusDescription=urlencode($statusDescription);
+				curl_setopt_array($ch, $opt);
 
-		switch ($status) {
-			case STATUS_AWAY: $h=((empty($statusDescription)) ? 3 : 5); break;
-			case STATUS_FFC: $h=((empty($statusDescription)) ? 23 : 24); break;
-			case STATUS_BACK: $h=((empty($statusDescription)) ? 2 : 4); break;
-			case STATUS_DND: $h=((empty($statusDescription)) ? 33 : 34); break;
-			case STATUS_INVISIBLE: $h=((empty($statusDescription)) ? 20 : 22); break;
-			default: $h=0; break;
+				$r = curl_exec($ch);
+				curl_close($ch);
+
+				return strpos($r, '<result><status>0</status></result>') !== false;
 		}
 
+		/**
+		 * Tworzy i zwraca uchwyt do nowego żądania cUrl
+		 *
+		 * @return $resource cURL handle
+		 */
+		private function getSingleCurlHandle()
+		{
+				$ch = curl_init();
 
-		$data=$this->authorization->getServerAndToken();
+				curl_setopt_array($ch, [
+						CURLOPT_SSL_VERIFYHOST => false,
+						CURLOPT_SSL_VERIFYPEER => false,
+						CURLOPT_FAILONERROR => true,
+						CURLOPT_FOLLOWLOCATION => false,
+						CURLOPT_RETURNTRANSFER => true,
+						CURLOPT_TIMEOUT => 5,
+						CURLOPT_CONNECTTIMEOUT => 5,
+						CURLOPT_BINARYTRANSFER => true,
+						CURLOPT_POST => true,
+						CURLOPT_HEADER => true,
+						CURLOPT_VERBOSE => CURL_VERBOSE
+				]);
 
-		$ch=$this->getSingleCurlHandle();
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array('BotApi-Version: '.BOTAPI_VERSION, 'Token: '.$data['token']));
-		curl_setopt($ch, CURLOPT_URL, 'https://'.$data['server'].'/setStatus/'.$this->gg);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, 'status='.$h.'&desc='.$statusDescription);
+				return $ch;
+	 }
 
-		$r=curl_exec($ch);
-		curl_close($ch);
+		/**
+		 * Tworzy i zwraca uchwyt do nowego żądania cUrl
+		 */
+		private function imageCurl($type, $post)
+		{
+				$ch = $this->getSingleCurlHandle();
+				$opt = [
+						CURLOPT_URL => "https://botapi.gadu-gadu.pl/botmaster/{$type}Image/{$this->gg}",
+						CURLOPT_POSTFIELDS => $post,
+						CURLOPT_HTTPHEADER => [
+								'BotApi-Version: '.BOTAPI_VERSION,
+								'Token: '.$this->authorization->getServerAndToken()['token'],
+								'Expect: '
+						]
+				];
 
-		return strpos($r, '<result><status>0</status></result>')!==false;
-	}
+				curl_setopt_array($ch, $opt);
+				$r = curl_exec($ch);
+				curl_close($ch);
 
-	/**
-	 * Tworzy i zwraca uchwyt do nowego żądania cUrl
-	 *
-	 * @return $resource cURL handle
-	 */
-	private function getSingleCurlHandle()
-	{
-		$data=$this->authorization->getServerAndToken();
+				return $r;
+		}
 
-		$ch=curl_init();
-		curl_setopt_array($ch, array(
-				CURLOPT_SSL_VERIFYHOST => false,
-				CURLOPT_SSL_VERIFYPEER => false,
-				CURLOPT_FAILONERROR => true,
-				CURLOPT_FOLLOWLOCATION => false,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_TIMEOUT => 5,
-				CURLOPT_CONNECTTIMEOUT => 5,
-				CURLOPT_BINARYTRANSFER => true,
-				CURLOPT_POST => true,
-				CURLOPT_HEADER => true,
-				CURLOPT_VERBOSE => CURL_VERBOSE
-			));
+		/**
+		 * Wysyła obrazek do Botmastera
+		 */
+		public function putImage($data)
+		{
+				return (!$this->authorization->isAuthorized()) ? false :
+						strpos($this->imageCurl('put', $data), '<result><status>0</status><hash>') !== false;
+		}
 
-		return $ch;
-	}
+		/**
+		 * Pobiera obrazek z Botmastera
+		 */
+		public function getImage($hash)
+		{
+				return (!$this->authorization->isAuthorized()) ? false :
+						explode("\r\n\r\n", $this->imageCurl('get', 'hash='.$hash), 2)[1];
+		}
 
-	/**
-	 * Nie ma opisów graficznych. Zostaje dla kompatybilności
-	 */
-	public function getUserbars()
-	{
-		trigger_error('Nie ma opisów graficznych', ((defined('E_USER_DEPRECATED')) ? E_USER_DEPRECATED : E_USER_NOTICE));
-		return array();
-	}
+		/**
+		 * Sprawdza czy Botmaster ma obrazek
+		 */
+		public function existsImage($hash)
+		{
+				return (!$this->authorization->isAuthorized()) ? false :
+						strpos($this->imageCurl('exists', 'hash='.$hash), '<result><status>0</status><hash>') !== false;
+		}
 
-	/**
-	 *Tworzy i zwraca uchwyt do nowego żądania cUrl
-	 */
-	private function imageCurl($type, $post)
-	{
-		$data=$this->authorization->getServerAndToken();
+		/**
+		 * Sprawdza, czy numer jest botem
+		 */
+		public function isBot($ggid)
+		{
+				if (!$this->authorization->isAuthorized()) {
+						return false;
+				}
 
-		$ch=$this->getSingleCurlHandle();
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array('BotApi-Version: '.BOTAPI_VERSION, 'Token: '.$data['token'], 'Expect: '));
-		curl_setopt($ch, CURLOPT_URL, 'https://botapi.gadu-gadu.pl/botmaster/'.$type.'Image/'.$this->gg);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
-		$r=curl_exec($ch);
-		curl_close($ch);
+				$opt = [
+						CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/isBot/'.$this->gg,
+						CURLOPT_POSTFIELDS => 'check_ggid='.$ggid,
+						CURLOPT_HTTPHEADER => [
+								'BotApi-Version: '.BOTAPI_VERSION,
+								'Token: '.$this->authorization->getServerAndToken()['token']
+						]
+				];
+				$ch = $this->getSingleCurlHandle();
 
-		return $r;
-	}
+				curl_setopt_array($ch, $opt);
+				$r = curl_exec($ch);
+				curl_close($ch);
 
-	/**
-	 * Wysyła obrazek do Botmastera
-	 */
-	public function putImage($data)
-	{
-		if (!$this->authorization->isAuthorized())
-			return false;
-
-		$r=$this->imageCurl('put', $data);
-		return strpos($r, '<result><status>0</status><hash>')!==false;
-	}
-
-	/**
-	 * Pobiera obrazek z Botmastera
-	 */
-	public function getImage($hash)
-	{
-		if (!$this->authorization->isAuthorized())
-			return false;
-
-		$r=explode("\r\n\r\n", $this->imageCurl('get', 'hash='.$hash), 2);
-		return $r[1];
-	}
-
-	/**
-	 * Sprawdza czy Botmaster ma obrazek
-	 */
-	public function existsImage($hash)
-	{
-		if (!$this->authorization->isAuthorized())
-			return false;
-
-		$r=$this->imageCurl('exists', 'hash='.$hash);
-		return strpos($r, '<result><status>0</status><hash>')!==false;
-	}
-
-	/**
-	 * Sprawdza, czy numer jest botem
-	 */
-	public function isBot($ggid)
-	{
-		if (!$this->authorization->isAuthorized())
-			return false;
-
-		$data=$this->authorization->getServerAndToken();
-
-		$ch=$this->getSingleCurlHandle();
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array('BotApi-Version: '.BOTAPI_VERSION, 'Token: '.$data['token']));
-		curl_setopt($ch, CURLOPT_URL, 'https://botapi.gadu-gadu.pl/botmaster/isBot/'.$this->gg);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, 'check_ggid='.$ggid);
-
-		$r=curl_exec($ch);
-		curl_close($ch);
-
-		return strpos($r, '<result><status>1</status></result>')!==false;
-	}
+				return strpos($r, '<result><status>1</status></result>') !== false;
+		}
 }
 
 /**
@@ -259,63 +264,61 @@ class PushConnection
  */
 class BotAPIAuthorization
 {
-	private $data=array(
-			'token' => NULL,
-			'server' => NULL,
-			'port' => NULL
-		);
-	private $isValid;
+		private $data = [
+				'token' => null,
+				'server' => null,
+				'port' => null
+		];
+		private $isValid;
 
-	/**
-	 * @return bool true jeśli autoryzacja przebiegła prawidłowo
-	 */
-	public function isAuthorized()
-	{
-		return $this->isValid;
-	}
+		/**
+		 * @return bool true jeśli autoryzacja przebiegła prawidłowo
+		 */
+		public function isAuthorized()
+		{
+				return $this->isValid;
+		}
 
-	public function __construct($ggid, $userName, $password)
-	{
-		$this->isValid=$this->getData($ggid, $userName, $password);
-	}
+		public function __construct($ggid, $userName, $password)
+		{
+				$this->isValid = $this->getData($ggid, $userName, $password);
+		}
 
-	private function getData($ggid, $userName, $password)
-	{
-		$ch=curl_init();
-		curl_setopt_array($ch, array(
-				CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/getToken/'.$ggid,
-				CURLOPT_USERPWD => $userName.':'.$password,
-				CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_SSL_VERIFYPEER => false,
-				CURLOPT_VERBOSE => CURL_VERBOSE,
-				CURLOPT_HTTPHEADER => array('BotApi-Version: '.BOTAPI_VERSION),
-			));
+		private function getData($ggid, $userName, $password)
+		{
+				$ch = curl_init();
+				curl_setopt_array($ch, [
+						CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/getToken/'.$ggid,
+						CURLOPT_USERPWD => $userName.':'.$password,
+						CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
+						CURLOPT_RETURNTRANSFER => true,
+						CURLOPT_SSL_VERIFYPEER => false,
+						CURLOPT_VERBOSE => CURL_VERBOSE,
+						CURLOPT_HTTPHEADER => ['BotApi-Version: '.BOTAPI_VERSION],
+				]);
 
-		$xml=curl_exec($ch);
-		curl_close($ch);
+				$xml = curl_exec($ch);
+				curl_close($ch);
 
-		$match1=preg_match('/<token>(.+?)<\/token>/', $xml, $tmpToken);
-		$match2=preg_match('/<server>(.+?)<\/server>/', $xml, $tmpServer);
-		$match3=preg_match('/<port>(.+?)<\/port>/', $xml, $tmpPort);
+				$regexp = '#<token>(.+?)</token><server>(.+?)</server><port>(\d+)</port>#';
+				if (!preg_match($regexp, $xml, $out)) {
+						return false;
+				}
 
-		if (!($match1 && $match2 && $match3))
-			return false;
+				$this->data['token'] = $out[1];
+				$this->data['server'] = $out[2];
+				$this->data['port'] = $out[3];
 
-		$this->data['token']=$tmpToken[1];
-		$this->data['server']=$tmpServer[1];
-		$this->data['port']=$tmpPort[1];
+				return true;
+		}
 
-		return true;
-	}
-
-	/**
-	 * Pobiera aktywny token, port i adres BotMastera
-	 *
-	 * @return bool false w przypadku błędu
-	 */
-	public function getServerAndToken()
-	{
-		return $this->data;
-	}
+		/**
+		 * Pobiera aktywny token, port i adres BotMastera
+		 *
+		 * @return array
+		 */
+		public function getServerAndToken()
+		{
+				return $this->data;
+		}
 }
