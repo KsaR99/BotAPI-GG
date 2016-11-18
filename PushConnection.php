@@ -11,8 +11,8 @@ the Free Software Foundation, either version 3 of the License, or
 
 This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
-GNU Lesser General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with this program. If not, see<http://www.gnu.org/licenses/>.
@@ -94,21 +94,19 @@ class PushConnection
 
 				foreach ($messages as $message) {
 						$ch = $this->getSingleCurlHandle();
-						$opt = [
+						curl_setopt_array($ch, [
 								CURLOPT_URL => 'https://'.$data['server'].'/sendMessage/'.$this->gg,
 								CURLOPT_POSTFIELDS => 'to='.implode(',', $message->recipientNumbers).'&msg='.urlencode($message->getProtocolMessage()),
 								CURLOPT_HTTPHEADER => [
 										'BotApi-Version: '.BOTAPI_VERSION,
 										'Token: '.$data['token'],
 										'Send-to-offline: '.((int)$message->sendToOffline)
-								]
-						];
+						]]);
 
-						curl_setopt_array($ch, $opt);
 						$r = curl_exec($ch);
 						curl_close($ch);
 
-						$count+= (strpos($r, '<result><status>0</status></result>') !== false);
+						$count+= strpos($r, '<result><status>0</status></result>') !== false;
 				}
 
 				return $count;
@@ -139,21 +137,20 @@ class PushConnection
 
 				$data = $this->authorization->getServerAndToken();
 				$ch = $this->getSingleCurlHandle();
-				$opt = [
+				curl_setopt_array($ch, [
 						CURLOPT_URL => 'https://'.$data['server'].'/setStatus/'.$this->gg,
 						CURLOPT_POSTFIELDS => 'status='.$h.'&desc='.$desc,
+						CURLOPT_HEADER => false,
 						CURLOPT_HTTPHEADER => [
 								'BotApi-Version: '.BOTAPI_VERSION,
 								'Token: '.$data['token']
 						]
-				];
-
-				curl_setopt_array($ch, $opt);
+				]);
 
 				$r = curl_exec($ch);
 				curl_close($ch);
 
-				return strpos($r, '<result><status>0</status></result>') !== false;
+				return strpos($r, '<status>0</status>') !== false;
 		}
 
 		/**
@@ -164,7 +161,6 @@ class PushConnection
 		private function getSingleCurlHandle()
 		{
 				$ch = curl_init();
-
 				curl_setopt_array($ch, [
 						CURLOPT_SSL_VERIFYHOST => false,
 						CURLOPT_SSL_VERIFYPEER => false,
@@ -188,7 +184,7 @@ class PushConnection
 		private function imageCurl($type, $post)
 		{
 				$ch = $this->getSingleCurlHandle();
-				$opt = [
+				curl_setopt_array($ch, [
 						CURLOPT_URL => "https://botapi.gadu-gadu.pl/botmaster/{$type}Image/{$this->gg}",
 						CURLOPT_POSTFIELDS => $post,
 						CURLOPT_HTTPHEADER => [
@@ -196,9 +192,8 @@ class PushConnection
 								'Token: '.$this->authorization->getServerAndToken()['token'],
 								'Expect: '
 						]
-				];
+				]);
 
-				curl_setopt_array($ch, $opt);
 				$r = curl_exec($ch);
 				curl_close($ch);
 
@@ -211,7 +206,7 @@ class PushConnection
 		public function putImage($data)
 		{
 				return (!$this->authorization->isAuthorized()) ? false :
-						strpos($this->imageCurl('put', $data), '<result><status>0</status><hash>') !== false;
+						strpos($this->imageCurl('put', $data), '<status>0</status>') !== false;
 		}
 
 		/**
@@ -229,7 +224,7 @@ class PushConnection
 		public function existsImage($hash)
 		{
 				return (!$this->authorization->isAuthorized()) ? false :
-						strpos($this->imageCurl('exists', 'hash='.$hash), '<result><status>0</status><hash>') !== false;
+						strpos($this->imageCurl('exists', 'hash='.$hash), '<status>0</status>') !== false;
 		}
 
 		/**
@@ -241,21 +236,21 @@ class PushConnection
 						return false;
 				}
 
-				$opt = [
+				$ch = $this->getSingleCurlHandle();
+				curl_setopt_array($ch, [
 						CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/isBot/'.$this->gg,
 						CURLOPT_POSTFIELDS => 'check_ggid='.$ggid,
+						CURLOPT_HEADER => false,
 						CURLOPT_HTTPHEADER => [
 								'BotApi-Version: '.BOTAPI_VERSION,
 								'Token: '.$this->authorization->getServerAndToken()['token']
 						]
-				];
-				$ch = $this->getSingleCurlHandle();
+				]);
 
-				curl_setopt_array($ch, $opt);
 				$r = curl_exec($ch);
 				curl_close($ch);
 
-				return strpos($r, '<result><status>1</status></result>') !== false;
+				return strpos($r, '<status>1</status>') !== false;
 		}
 }
 
