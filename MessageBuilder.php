@@ -50,9 +50,7 @@ class MessageBuilder
 		public $text = '';
 		public $format = '';
 
-		public $R = 0;
-		public $G = 0;
-		public $B = 0;
+		public $rgb = [0, 0, 0];
 
 		/**
 		 * Konstruktor MessageBuilder
@@ -73,9 +71,7 @@ class MessageBuilder
 				$this->text = '';
 				$this->format = '';
 
-				$this->R = 0;
-				$this->G = 0;
-				$this->B = 0;
+				$this->rgb = [0, 0, 0];
 		}
 
 		/**
@@ -97,17 +93,16 @@ class MessageBuilder
 				$html = str_replace("\r\n", '<br>', htmlspecialchars($text, ENT_NOQUOTES, 'UTF-8'));
 
 				if ($this->format !== null) {
+						$rgb = &$this->rgb;
+
 						$this->format.= pack('vC', mb_strlen($this->text, 'UTF-8'),
 								($formatBits & FORMAT_BOLD_TEXT) |
 								($formatBits & FORMAT_ITALIC_TEXT) |
 								($formatBits & FORMAT_UNDERLINE_TEXT) |
-								(1 || $R != $this->R || $G != $this->G || $B != $this->B) * 0x08).
+								(1 || $R != $rgb[0] || $G != $rgb[1] || $B != $rgb[2]) * 0x08).
 						pack('CCC', $R, $G, $B);
 
-						$this->R = $R;
-						$this->G = $G;
-						$this->B = $B;
-
+						$rgb = [$R, $G, $B];
 						$this->text.= $text;
 				}
 
@@ -176,7 +171,7 @@ class MessageBuilder
 												$heap[] = [$out[2][0]];
 										break;
 										case 'color':
-												$c = hexdec(substr($out[3][0], -6, 6));
+												$c = hexdec(substr($out[3][0], -6));
 												$c = [($c>>16) & 0xFF, ($c>>8) & 0xFF, ($c>>0) & 0xFF];
 												$heap[] = ['color', $c];
 										break;
@@ -305,12 +300,7 @@ class MessageBuilder
 		 */
 		public function getProtocolMessage()
 		{
-				if (preg_match('#^<span[^>]*>.+</span>$#s', $this->html, $o)) {
-						if ($o[0] != $this->html) {
-								$this->html = '<span style="color:#000000;font-family:'.
-								'\'MS Shell Dlg 2\';font-size:9pt">'.$this->html.'</span>';
-						}
-				} else {
+				if (!preg_match('#^<span[^>]*>.+</span>$#s', $this->html, $o) || isset($o[0]) && $o[0] != $this->html) {
 						$this->html = '<span style="color:#000000;font-family:'.
 						'\'MS Shell Dlg 2\';font-size:9pt">'.$this->html.'</span>';
 				}
