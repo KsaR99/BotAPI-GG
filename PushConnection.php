@@ -1,8 +1,8 @@
 <?php
-/*******
-Biblioteka implementująca BotAPI GG http://boty.gg.pl/
+/**
+Biblioteka implementująca BotAPI GG <https://boty.gg.pl>
 Copyright (C) 2013 GG Network S.A. Marcin Bagiński <marcin.baginski@firma.gg.pl>
-Modified by KsaR 2016 <https://github.com/KsaR99>
+Modified by KsaR 2016 <https://github.com/KsaR99/>
 
 This library is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -15,8 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
-along with this program. If not, see<http://www.gnu.org/licenses/>.
-*******/
+along with this program. If not, see <http://www.gnu.org/licenses/>
+**/
 
 require_once __DIR__.'/MessageBuilder.php';
 
@@ -27,9 +27,6 @@ define('STATUS_FFC', 'ffc');
 define('STATUS_BACK', 'back');
 define('STATUS_DND', 'dnd');
 define('STATUS_INVISIBLE', 'invisible');
-
-PushConnection::$BOTAPI_LOGIN = '';
-PushConnection::$BOTAPI_PASSWORD = '';
 
 /**
  * @brief Klasa reprezentująca połączenie PUSH z BotMasterem.
@@ -97,6 +94,7 @@ class PushConnection
 						curl_setopt_array($ch, [
 								CURLOPT_URL => 'https://'.$data['server'].'/sendMessage/'.$this->gg,
 								CURLOPT_POSTFIELDS => 'to='.implode(',', $message->recipientNumbers).'&msg='.urlencode($message->getProtocolMessage()),
+								CURLOPT_HEADER => false,
 								CURLOPT_HTTPHEADER => [
 										'BotApi-Version: '.BOTAPI_VERSION,
 										'Token: '.$data['token'],
@@ -106,7 +104,7 @@ class PushConnection
 						$r = curl_exec($ch);
 						curl_close($ch);
 
-						$count+= strpos($r, '<result><status>0</status></result>') !== false;
+						$count+= strpos($r, '<status>0</status>') !== false;
 				}
 
 				return $count;
@@ -154,9 +152,9 @@ class PushConnection
 		}
 
 		/**
-		 * Tworzy i zwraca uchwyt do nowego żądania cUrl
+		 * Tworzy i zwraca uchwyt do nowego żądania cURL
 		 *
-		 * @return $resource cURL handle
+		 * @return resource cURL handle
 		 */
 		private function getSingleCurlHandle()
 		{
@@ -179,7 +177,7 @@ class PushConnection
 	 }
 
 		/**
-		 * Tworzy i zwraca uchwyt do nowego żądania cUrl
+		 * Tworzy i zwraca uchwyt do nowego żądania cURL
 		 */
 		private function imageCurl($type, $post)
 		{
