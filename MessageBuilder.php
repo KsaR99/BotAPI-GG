@@ -1,8 +1,8 @@
 <?php
-/*******
-Biblioteka implementująca BotAPI GG http://boty.gg.pl/
+/**
+Biblioteka implementująca BotAPI GG <https://boty.gg.pl>
 Copyright (C) 2013 GG Network S.A. Marcin Bagiński <marcin.baginski@firma.gg.pl>
-Modified by KsaR 2016 <https://github.com/KsaR99>
+Modified by KsaR 2016 <https://github.com/KsaR99/>
 
 This library is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -11,12 +11,12 @@ the Free Software Foundation, either version 3 of the License, or
 
 This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
-GNU Lesser General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
-along with this program. If not, see<http://www.gnu.org/licenses/>.
-*******/
+along with this program. If not, see <http://www.gnu.org/licenses/>
+**/
 
 define('BOTAPI_VERSION', 'GGBotApi-2.5-PHP');
 
@@ -137,7 +137,7 @@ class MessageBuilder
 		/**
 		 * Dodaje tekst do wiadomości
 		 *
-		 * @param string $text tekst do wysłania w formacie BBCode
+		 * @param string $bbcode tekst do wysłania w formacie BBCode
 		 *
 		 * @return MessageBuilder this
 		 */
@@ -177,11 +177,7 @@ class MessageBuilder
 										break;
 										case 'color':
 												$c = hexdec(substr($out[3][0], -6, 6));
-												$c = [
-														($c>>16) & 0xFF,
-														($c>>8) & 0xFF,
-														($c>>0) & 0xFF
-												];
+												$c = [($c>>16) & 0xFF, ($c>>8) & 0xFF, ($c>>0) & 0xFF];
 												$heap[] = ['color', $c];
 										break;
 								}
@@ -189,9 +185,8 @@ class MessageBuilder
 								array_pop($heap);
 						}
 
-						$out00Len = strlen($out[0][0]);
-						$start = $out[0][1]+$out00Len;
-						$tagsLength += $out00Len;
+						$tagsLength += $tagLen = strlen($out[0][0]);
+						$start = $out[0][1]+$tagLen;
 				}
 
 				$s = substr($bbcode, $start);
@@ -206,7 +201,7 @@ class MessageBuilder
 		/**
 		 * Dodaje tekst do wiadomości
 		 *
-		 * @param string $text tekst do wysłania w HTMLu
+		 * @param string $html tekst do wysłania w HTMLu
 		 *
 		 * @return MessageBuilder this
 		 */
@@ -234,7 +229,7 @@ class MessageBuilder
 		/**
 		 * Ustawia tekst wiadomości alternatywnej
 		 *
-		 * @param string $text tekst do wysłania dla GG7.7 i starszych
+		 * @param string $message tekst do wysłania dla GG 7.7 i starszych
 		 *
 		 * @return MessageBuilder this
 		 */
@@ -249,29 +244,29 @@ class MessageBuilder
 		/**
 		 * Dodaje obraz do wiadomości
 		 *
-		 * @param string $fileName nazwa pliku w formacie JPEG
+		 * @param string $path ścieżka do pliku graficznego
 		 *
 		 * @return MessageBuilder this
 		 */
-		public function addImage($fileName, $isFile = IMG_FILE)
+		public function addImage($path, $isFile = IMG_FILE)
 		{
 				if (empty(PushConnection::$lastAuthorization)) {
 						throw new Exception('Użyj klasy PushConnection');
 				}
 				if ($isFile == IMG_FILE) {
-						$fileName = file_get_contents($fileName);
+						$content = file_get_contents($path);
 				}
 
-				$crc = crc32($fileName);
-				$fileNameLen = strlen($fileName);
-				$hash = sprintf('%08x%08x', $crc, $fileNameLen);
+				$crc = crc32($content);
+				$fileLen = strlen($content);
+				$hash = sprintf('%08x%08x', $crc, $fileLen);
 				$p = new PushConnection;
 
-				if (!$p->existsImage($hash) && !$p->putImage($fileName)) {
+				if (!$p->existsImage($hash) && !$p->putImage($content)) {
 						throw new Exception('Nie udało się wysłać obrazka');
 				}
 
-				$this->format.= pack('vCCCVV', strlen($this->text), 0x80, 0x09, 0x01, $fileNameLen, $crc);
+				$this->format.= pack('vCCCVV', strlen($this->text), 0x80, 0x09, 0x01, $fileLen, $crc);
 				$this->addRawHtml('<img name="'.$hash.'">');
 
 				return $this;
@@ -280,7 +275,7 @@ class MessageBuilder
 		/**
 		 * Ustawia odbiorców wiadomości
 		 *
-		 * @param int|string|array recipientNumbers numer GG adresata (lub tablica)
+		 * @param int|string|array $recipientNumbers numer/y GG odbiorców
 		 *
 		 * @return MessageBuilder this
 		 */
@@ -292,7 +287,9 @@ class MessageBuilder
 		}
 
 		/**
-		 * Zawsze dostarcza wiadomość
+		 * Ustawia czy dostarczyć do OFFLINE
+		 *
+		 * @param $sendToOffline bool|int
 		 *
 		 * @return MessageBuilder this
 		 */
@@ -321,9 +318,8 @@ class MessageBuilder
 				return pack('VVVV', strlen($this->html)+1, strlen($this->text)+1, 0,
 						(empty($this->format) ? 0 : strlen($this->format)+3)).
 						$this->html."\0".$this->text."\0".
-						(empty($this->format)
-								? ''
-								: pack('Cv', 0x02, strlen($this->format)).$this->format
+						(empty($this->format) ? '' :
+								pack('Cv', 0x02, strlen($this->format)).$this->format
 						);
 		}
 
