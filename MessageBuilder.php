@@ -105,15 +105,9 @@ class MessageBuilder
 						$rgb = [$R, $G, $B];
 						$this->text.= $text;
 				}
-
 				if ($R || $G || $B) {
-						$html = '<span style="color:#'.
-								substr('00'.dechex($R), -2).
-								substr('00'.dechex($G), -2).
-								substr('00'.dechex($B), -2).
-								'">'.$html.'</span>';
+						$html = '<span style="color:#'.substr('00'.dechex($R), -2).substr('00'.dechex($G), -2).substr('00'.dechex($B), -2)."\">$html</span>";
 				}
-
 				if ($formatBits & FORMAT_BOLD_TEXT) {
 						$html = '<b>'.$html.'</b>';
 				}
@@ -149,7 +143,6 @@ class MessageBuilder
 
 						if (!empty($s)) {
 								$flags = 0;
-								$c = [0, 0, 0];
 
 								foreach ($heap as $h) {
 										switch ($h[0]) {
@@ -163,18 +156,12 @@ class MessageBuilder
 								$this->addText($s, $flags, $c[0], $c[1], $c[2]);
 						}
 
-						if ($out[1][0] == '') {
-								switch ($out[2][0]) {
-										case 'b':
-										case 'i':
-										case 'u':
-												$heap[] = [$out[2][0]];
-										break;
-										case 'color':
-												$c = hexdec(substr($out[3][0], -6));
-												$c = [($c>>16) & 0xFF, ($c>>8) & 0xFF, ($c>>0) & 0xFF];
-												$heap[] = ['color', $c];
-										break;
+						if ($out[1][0] === '') {
+								if (in_array($out[2][0], ['b', 'i', 'u'])) {
+										$heap[] = [$out[2][0]];
+								} elseif ($out[2][0] === 'color') {
+										$c = hexdec(substr($out[3][0], -6));
+										$heap[] = ['color', [($c>>16) & 0xFF, ($c>>8) & 0xFF, ($c>>0) & 0xFF]];
 								}
 						} else {
 								array_pop($heap);
@@ -301,16 +288,15 @@ class MessageBuilder
 		public function getProtocolMessage()
 		{
 				if (!preg_match('#^<span[^>]*>.+</span>$#s', $this->html, $o) || isset($o[0]) && $o[0] != $this->html) {
-						$this->html = '<span style="color:#000000;font-family:'.
-						'\'MS Shell Dlg 2\';font-size:9pt">'.$this->html.'</span>';
+						$this->html = '<span style="color:#000000;font-family:\'MS Shell Dlg 2\';font-size:9pt">'.$this->html.'</span>';
 				}
 
+				$formatLen = strlen($this->format);
+
 				return pack('VVVV', strlen($this->html)+1, strlen($this->text)+1, 0,
-						(empty($this->format) ? 0 : strlen($this->format)+3)).
-						$this->html."\0".$this->text."\0".
-						(empty($this->format) ? '' :
-								pack('Cv', 0x02, strlen($this->format)).$this->format
-						);
+						(empty($this->format) ? 0 : $formatLen+3)).$this->html."\0$this->text\0".
+						(empty($this->format) ? '' : pack('Cv', 0x02, $formatLen).$this->format
+				);
 		}
 
 		/**
