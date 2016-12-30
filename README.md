@@ -1,2 +1,5 @@
 # BotAPI-GG
-Proposed changes for platform BotAPI GG ( https://boty.gg.pl )
+Propozycje zmian bibliotek platformy BotAPI GG ( https://boty.gg.pl )
+* Wymagane PHP 5.4+
+* Optymalizacje
+* Skasowanie deporcjonowanych zmiennych, metod.
