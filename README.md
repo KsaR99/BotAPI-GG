@@ -15,17 +15,17 @@ v.2.5:
 v. 3.0:
 
 ### MessageBuilder
-#### Ogólne
+#### Ogólne:
  * Skasowano lokalne stałe które nie będą więcej potrzebne: FORMAT_NONE, FORMAT_BOLD_TEXT, FORMAT_ITALIC_TEXT, FORMAT_UNDERLINE_TEXT, FORMAT_NEW_LINE
  * Kod powiązany z BBcode skasowany.
-#### Metody
+#### Metody:
  * Skasowano metody: [addBBcode(), setSendToOffline() - nie wspierane już]
  * addText() parametry powiązane z BBcode skasowane.
 
 ### PushConnection
-#### Ogólne
+#### Ogólne:
  * Stałe lokalne STATUS_* przeniesione do klasy, można się do ich zewnętrznie odwołać używając PushConnection::STATUS_*
-#### Metody
+#### Metody:
  ***push()***
   * skasowano kod z $count - wygląda na nieużywane i jest nieudokumentowane.
   * skasowano $message->sendToOffline (nie działa już)
