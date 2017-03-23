@@ -62,7 +62,7 @@ class MessageBuilder
      *
      * @return MessageBuilder this
      */
-    public function addText(string $text)
+    public function addText($text)
     {
         $text = str_replace(["\n", "\r\r"], ["\r\n", "\r"], $text);
         $html = str_replace("\r\n", '<br>', htmlspecialchars($text, ENT_NOQUOTES, 'UTF-8'));
@@ -83,7 +83,7 @@ class MessageBuilder
      *
      * @return MessageBuilder this
      */
-    public function addRawHtml(string $html)
+    public function addRawHtml($html)
     {
         $this->html.= $html;
 
@@ -97,7 +97,7 @@ class MessageBuilder
      *
      * @return MessageBuilder this
      */
-    public function setRawHtml(string $html)
+    public function setRawHtml($html)
     {
         $this->html = $html;
 
@@ -111,7 +111,7 @@ class MessageBuilder
      *
      * @return MessageBuilder this
      */
-    public function setAlternativeText(string $message)
+    public function setAlternativeText($message)
     {
         $this->format = null;
         $this->text = $message;
@@ -126,7 +126,7 @@ class MessageBuilder
      *
      * @return MessageBuilder this
      */
-    public function addImage(string $path, $isFile = IMG_FILE)
+    public function addImage($path, $isFile = IMG_FILE)
     {
         if (empty(PushConnection::$lastAuthorization)) {
             throw new Exception('Użyj klasy PushConnection');
