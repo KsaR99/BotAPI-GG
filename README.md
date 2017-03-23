@@ -14,6 +14,8 @@ v.2.5:
 
 v. 3.0:
 
+* Wymagane PHP 5.6+
+
 ### MessageBuilder
 #### Ogólne:
  * Skasowano lokalne stałe które nie będą więcej potrzebne: FORMAT_NONE, FORMAT_BOLD_TEXT, FORMAT_ITALIC_TEXT, FORMAT_UNDERLINE_TEXT, FORMAT_NEW_LINE
