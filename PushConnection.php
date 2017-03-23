@@ -57,7 +57,7 @@ class PushConnection
      * @param string $userName login
      * @param string $password hasło
      */
-    public function __construct($botGGNumber = null, string $userName = null, string $password = null)
+    public function __construct($botGGNumber = null, $userName = null, $password = null)
     {
         if (empty(self::$lastAuthorization) || !self::$lastAuthorization->isAuthorized()
         || ($botGGNumber !== self::$lastGg && $botGGNumber !== null)) {
@@ -114,7 +114,7 @@ class PushConnection
      * @param string $desc Treść opisu
      * @param string $status Typ opisu
      */
-    public function setStatus(string $desc, string $status = '')
+    public function setStatus($desc, $status = '')
     {
         if (!$this->authorization->isAuthorized()) {
             return;
@@ -214,7 +214,6 @@ class PushConnection
 
     /**
      * Sprawdza czy Botmaster ma obrazek
-     * M->addImage()
      */
     public function existsImage($hash)
     {
@@ -271,12 +270,12 @@ class BotAPIAuthorization
         return $this->isValid;
     }
 
-    public function __construct($ggid, string $userName, string $password)
+    public function __construct($ggid, $userName, $password)
     {
         $this->isValid = $this->getData($ggid, $userName, $password);
     }
 
-    private function getData($ggid, string $userName, string $password)
+    private function getData($ggid, $userName, $password)
     {
         $ch = curl_init();
         curl_setopt_array($ch, [
