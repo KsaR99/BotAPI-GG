@@ -91,7 +91,6 @@ class PushConnection
         }
 
         $data = $this->authorization->getServerAndToken();
-        $fails = 0;
 
         foreach ($messages as $message) {
             $ch = $this->getSingleCurlHandle();
@@ -107,11 +106,9 @@ class PushConnection
             $r = curl_exec($ch);
             curl_close($ch);
 
-            $fails += strpos($r, '<status>0</status>') !== false;
-        }
-
-        if ($fails) {
-            throw new Exception('Nie udało się wysłać wiadomości.');
+            if (strpos($r, '<status>0</status>') === false) {
+                throw new PushConnectionException('Nie udało się wysłać wiadomości.');
+            }
         }
     }
 
@@ -151,8 +148,8 @@ class PushConnection
         $r = curl_exec($ch);
         curl_close($ch);
 
-        if (strpos($r, '<status>0</status>') !== false) {
-            throw new Exception('Niepowodzenie ustawiania statusu.');
+        if (strpos($r, '<status>0</status>') === false) {
+            throw new PushConnectionException('Niepowodzenie ustawiania statusu.');
         }
     }
 
@@ -327,3 +324,8 @@ class BotAPIAuthorization
         return $this->data;
     }
 }
+
+/**
+ * Baza dla wszystkich wyjątków.
+ */
+class PushConnectionException extends Exception {}
