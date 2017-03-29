@@ -30,6 +30,9 @@ require_once __DIR__.'/PushConnection.php';
  */
 class MessageBuilder
 {
+    /**
+     * Lista odbiorców ( numery GG )
+     */
     public $recipientNumbers = [];
 
     public $html = '';
@@ -68,10 +71,10 @@ class MessageBuilder
         $html = str_replace("\r\n", '<br>', htmlspecialchars($text, ENT_NOQUOTES, 'UTF-8'));
 
         if ($this->format !== null) {
-            $this->text.= $text;
+            $this->text .= $text;
         }
 
-        $this->html.= $html;
+        $this->html .= $html;
 
         return $this;
     }
@@ -85,7 +88,7 @@ class MessageBuilder
      */
     public function addRawHtml($html)
     {
-        $this->html.= $html;
+        $this->html .= $html;
 
         return $this;
     }
@@ -135,7 +138,7 @@ class MessageBuilder
         $content = '';
 
         if ($isFile) {
-            $content.= file_get_contents($path);
+            $content .= file_get_contents($path);
         }
 
         $crc = crc32($content);
@@ -175,10 +178,7 @@ class MessageBuilder
     {
         $formatLen = strlen($this->format);
 
-        return pack('VVVV',
-        strlen($this->html)+1,
-        strlen($this->text)+1,
-        0,
+        return pack('VVVV', strlen($this->html)+1, strlen($this->text)+1, 0,
           (empty($this->format) ? 0 : $formatLen+3)).$this->html."\0$this->text\0".
           (empty($this->format) ? '' : pack('Cv', 0x02, $formatLen).$this->format
         );
