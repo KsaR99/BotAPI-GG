@@ -29,8 +29,8 @@ v. 3.0:
  * Stałe lokalne STATUS_* przeniesione do klasy, można się do ich zewnętrznie odwołać używając PushConnection::STATUS_*
 #### Metody:
  ***push()***
-  * Rzucanie wyjątku klasy Exception wrazie niepowodzenia.
+  * Rzucanie wyjątku klasy PushConnectionException w przypadku niepowodzenia.
   * skasowano $message->sendToOffline (nie działa już)
 
  ***setStatus()***
- * Rzucanie wyjątku klasy Exception wrazie niepowodzenia.
+ * Rzucanie wyjątku klasy PushConnectionException w przypadku niepowodzenia.
