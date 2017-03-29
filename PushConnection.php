@@ -91,6 +91,7 @@ class PushConnection
         }
 
         $data = $this->authorization->getServerAndToken();
+        $fails = 0;
 
         foreach ($messages as $message) {
             $ch = $this->getSingleCurlHandle();
@@ -103,8 +104,14 @@ class PushConnection
                     'Token: '.$data['token']
             ]]);
 
-            curl_exec($ch);
+            $r = curl_exec($ch);
             curl_close($ch);
+
+            $fails += strpos($r, '<status>0</status>') !== false;
+        }
+
+        if ($fails) {
+            throw new Exception('Nie udało się wysłać wiadomości.');
         }
     }
 
@@ -141,8 +148,12 @@ class PushConnection
             ]
         ]);
 
-        curl_exec($ch);
+        $r = curl_exec($ch);
         curl_close($ch);
+
+        if (strpos($r, '<status>0</status>') !== false) {
+            throw new Exception('Niepowodzenie ustawiania statusu.');
+        }
     }
 
     /**
@@ -292,6 +303,7 @@ class BotAPIAuthorization
         curl_close($ch);
 
         $regexp = '~<token>(.+?)</token><server>(.+?)</server><port>(\d+)</port>~';
+
         if (!preg_match($regexp, $xml, $out)) {
             return false;
         }
