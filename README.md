@@ -33,4 +33,4 @@ v. 3.0:
   * skasowano $message->sendToOffline (nie działa już)
 
  ***setStatus()***
-  * Rzucanie wyjątku klasy Exception wrazie niepowodzenia.
+ * Rzucanie wyjątku klasy Exception wrazie niepowodzenia.
