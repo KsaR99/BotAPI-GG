@@ -107,7 +107,7 @@ class PushConnection
             curl_close($ch);
 
             if (strpos($r, '<status>0</status>') === false) {
-                throw new PushConnectionException('Nie udało się wysłać wiadomości.');
+                throw new UnableToSendMessageException('Nie udało się wysłać wiadomości.');
             }
         }
     }
@@ -149,7 +149,7 @@ class PushConnection
         curl_close($ch);
 
         if (strpos($r, '<status>0</status>') === false) {
-            throw new PushConnectionException('Niepowodzenie ustawiania statusu.');
+            throw new UnableToSetStatusExteption('Niepowodzenie ustawiania statusu.');
         }
     }
 
@@ -329,3 +329,9 @@ class BotAPIAuthorization
  * Baza dla wszystkich wyjątków.
  */
 class PushConnectionException extends Exception {}
+
+/**
+ * Wyjątki.
+ */
+class UnableToSetStatusExteption extends PushConnectionException {}
+class UnableToSendMessageException extends PushConnectionException {}
