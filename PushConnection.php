@@ -118,20 +118,20 @@ class PushConnection
      * @param string $desc Treść opisu
      * @param string $status Typ opisu
      */
-    public function setStatus($desc, $status = '')
+    public function setStatus($desc, $status = 'none')
     {
         if (!$this->authorization->isAuthorized()) {
             return;
         }
 
-        switch ($status) {
-            case self::STATUS_AWAY: $h = empty($desc) ? 3 : 5; break;
-            case self::STATUS_FFC: $h = empty($desc) ? 23 : 24; break;
-            case self::STATUS_BACK: $h = empty($desc) ? 2 : 4; break;
-            case self::STATUS_DND: $h = empty($desc) ? 33 : 34; break;
-            case self::STATUS_INVISIBLE: $h = empty($desc) ? 20 : 22; break;
-            default: $h = 0;
-        }
+        $h = [
+            static::STATUS_AWAY => empty($desc) ? 3 : 5,
+            static::STATUS_FFC => empty($desc) ? 23 : 24,
+            static::STATUS_BACK => empty($desc) ? 2 : 4,
+            static::STATUS_DND => empty($desc) ? 33 : 34,
+            static::STATUS_INVISIBLE => empty($desc) ? 20 : 22,
+            'none' => 0
+        ][$status];
 
         $data = $this->authorization->getServerAndToken();
         $ch = $this->getSingleCurlHandle();
