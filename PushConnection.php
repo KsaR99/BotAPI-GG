@@ -115,29 +115,32 @@ class PushConnection
     /**
      * Ustawia opis botowi.
      *
-     * @param string $desc Treść opisu
+     * @param string $descr Treść opisu
      * @param string $status Typ opisu
      */
-    public function setStatus($desc, $status = 'none')
+    public function setStatus($descr, $status = 'none')
     {
         if (!$this->authorization->isAuthorized()) {
             return;
         }
 
+        $descrIsEmpty = empty($descr);
+
         $h = [
-            static::STATUS_AWAY => empty($desc) ? 3 : 5,
-            static::STATUS_FFC => empty($desc) ? 23 : 24,
-            static::STATUS_BACK => empty($desc) ? 2 : 4,
-            static::STATUS_DND => empty($desc) ? 33 : 34,
-            static::STATUS_INVISIBLE => empty($desc) ? 20 : 22,
+            static::STATUS_AWAY => $descrIsEmpty ? 3 : 5,
+            static::STATUS_FFC => $descrIsEmpty ? 23 : 24,
+            static::STATUS_BACK => $descrIsEmpty ? 2 : 4,
+            static::STATUS_DND => $descrIsEmpty ? 33 : 34,
+            static::STATUS_INVISIBLE => $descrIsEmpty ? 20 : 22,
             'none' => 0
         ][$status];
 
         $data = $this->authorization->getServerAndToken();
         $ch = $this->getSingleCurlHandle();
+
         curl_setopt_array($ch, [
             CURLOPT_URL => 'https://'.$data['server'].'/setStatus/'.$this->gg,
-            CURLOPT_POSTFIELDS => 'status='.$h.'&desc='.urlencode($desc),
+            CURLOPT_POSTFIELDS => 'status='.$h.'&desc='.urlencode($descr),
             CURLOPT_HEADER => false,
             CURLOPT_HTTPHEADER => [
                 'BotApi-Version: '.BOTAPI_VERSION,
@@ -145,10 +148,10 @@ class PushConnection
             ]
         ]);
 
-        $r = curl_exec($ch);
+        $res = curl_exec($ch);
         curl_close($ch);
 
-        if (strpos($r, '<status>0</status>') === false) {
+        if (strpos($res, '<status>0</status>') === false) {
             throw new UnableToSetStatusExteption('Niepowodzenie ustawiania statusu.');
         }
     }
