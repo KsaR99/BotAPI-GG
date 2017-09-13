@@ -118,7 +118,7 @@ class PushConnection
      * @param string $descr Treść opisu
      * @param string $status Typ opisu
      */
-    public function setStatus($descr, $status = 'none')
+    public function setStatus($descr, $status = '')
     {
         if (!$this->authorization->isAuthorized()) {
             return;
