@@ -19,10 +19,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  */
 
-require_once __DIR__.'/MessageBuilder.php';
-
-const CURL_VERBOSE = false; // zmienić na true, jeśli chce się uzyskać dodatkowe informacje debugowe
-
 /**
  * @brief Klasa reprezentująca połączenie PUSH z BotMasterem.
  * Autoryzuje połączenie w trakcie tworzenia i wysyła wiadomości do BotMastera.
@@ -49,6 +45,12 @@ class PushConnection
     const STATUS_BACK = 'back';
     const STATUS_DND = 'dnd';
     const STATUS_INVISIBLE = 'invisible';
+
+    /**
+     * Curl debug
+     * domyślnie: false
+     */
+    const CURL_VERBOSE = false;
 
     /**
      * Konstruktor PushConnection - przeprowadza autoryzację
@@ -99,7 +101,7 @@ class PushConnection
                 CURLOPT_POSTFIELDS => 'msg='.urlencode($message->getProtocolMessage()).'&to='.implode(',', $message->recipientNumbers),
                 CURLOPT_HEADER => false,
                 CURLOPT_HTTPHEADER => [
-                    'BotApi-Version: '.BOTAPI_VERSION,
+                    'BotApi-Version: '.MessageBuilder::BOTAPI_VERSION,
                     'Token: '.$data['token']
             ]]);
 
@@ -143,7 +145,7 @@ class PushConnection
             CURLOPT_POSTFIELDS => 'status='.$h.'&desc='.urlencode($descr),
             CURLOPT_HEADER => false,
             CURLOPT_HTTPHEADER => [
-                'BotApi-Version: '.BOTAPI_VERSION,
+                'BotApi-Version: '.MessageBuilder::BOTAPI_VERSION,
                 'Token: '.$data['token']
             ]
         ]);
@@ -175,7 +177,7 @@ class PushConnection
             CURLOPT_BINARYTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_HEADER => true,
-            CURLOPT_VERBOSE => CURL_VERBOSE
+            CURLOPT_VERBOSE => self::CURL_VERBOSE
         ]);
 
         return $ch;
@@ -191,7 +193,7 @@ class PushConnection
             CURLOPT_URL => "https://botapi.gadu-gadu.pl/botmaster/{$type}Image/{$this->gg}",
             CURLOPT_POSTFIELDS => $post,
             CURLOPT_HTTPHEADER => [
-                'BotApi-Version: '.BOTAPI_VERSION,
+                'BotApi-Version: '.MessageBuilder::BOTAPI_VERSION,
                 'Token: '.$this->authorization->getServerAndToken()['token'],
                 'Expect: '
             ]
@@ -248,7 +250,7 @@ class PushConnection
             CURLOPT_POSTFIELDS => 'check_ggid='.$ggid,
             CURLOPT_HEADER => false,
             CURLOPT_HTTPHEADER => [
-                'BotApi-Version: '.BOTAPI_VERSION,
+                'BotApi-Version: '.MessageBuilder::BOTAPI_VERSION,
                 'Token: '.$this->authorization->getServerAndToken()['token']
             ]
         ]);
@@ -295,8 +297,8 @@ class BotAPIAuthorization
             CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_VERBOSE => CURL_VERBOSE,
-            CURLOPT_HTTPHEADER => ['BotApi-Version: '.BOTAPI_VERSION],
+            CURLOPT_VERBOSE => PushConnection::CURL_VERBOSE,
+            CURLOPT_HTTPHEADER => ['BotApi-Version: '.MessageBuilder::BOTAPI_VERSION],
         ]);
 
         $xml = curl_exec($ch);
