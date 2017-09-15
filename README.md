@@ -12,15 +12,20 @@ v.2.5:
 
 ----
 
-v. 3.0:
+v.3.0:
 
 * Wymagane PHP 5.6+
+* Lepsze wsparcie dla autoloadingu.
 
 ### MessageBuilder
 #### Ogólne:
  * Skasowano lokalne stałe które nie będą więcej potrzebne: FORMAT_NONE, FORMAT_BOLD_TEXT, FORMAT_ITALIC_TEXT, FORMAT_UNDERLINE_TEXT, FORMAT_NEW_LINE
  * Kod powiązany z BBcode skasowany.
 #### Metody:
+ ***addImage()***
+  * Rzucanie wyjątku "UnableToSendImageException" w przypadku niepowodzenia.
+
+ ***Inne***
  * Skasowano metody: [addBBcode(), setSendToOffline() - nie wspierane już]
  * addText() parametry powiązane z BBcode skasowane.
 
