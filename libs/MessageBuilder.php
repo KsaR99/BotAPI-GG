@@ -19,12 +19,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  */
 
-const BOTAPI_VERSION = 'GGBotAPI-3.0;PHP-'.PHP_VERSION;
-const IMG_FILE = true;
-const IMG_RAW = false;
-
-require_once __DIR__.'/PushConnection.php';
-
 /**
  * @brief Reprezentacja wiadomości
  */
@@ -38,6 +32,10 @@ class MessageBuilder
     public $html = '';
     public $text = '';
     public $format = null;
+
+    const BOTAPI_VERSION = 'GGBotAPI-3.0;PHP-'.PHP_VERSION;
+    const IMG_FILE = true;
+    const IMG_RAW = false;
 
     /**
      * Konstruktor MessageBuilder
@@ -129,10 +127,10 @@ class MessageBuilder
      *
      * @return MessageBuilder this
      */
-    public function addImage($path, $isFile = IMG_FILE)
+    public function addImage($path, $isFile = self::IMG_FILE)
     {
         if (empty(PushConnection::$lastAuthorization)) {
-            throw new Exception('Użyj klasy PushConnection');
+            throw new MessageBuilderException('Użyj klasy PushConnection');
         }
 
         $content = '';
@@ -148,10 +146,10 @@ class MessageBuilder
         $p = new PushConnection;
 
         if (!$p->existsImage($hash) && !$p->putImage($content)) {
-            throw new Exception('Nie udało się wysłać obrazka');
+            throw new UnableToSendImageException('Nie udało się wysłać obrazka');
         }
 
-        $this->format.= pack('vCCCVV', strlen($this->text), 0x80, 0x09, 0x01, $contentLength, $crc);
+        $this->format .= pack('vCCCVV', strlen($this->text), 0x80, 0x09, 0x01, $contentLength, $crc);
         $this->addRawHtml('<img name="'.$hash.'">');
 
         return $this;
@@ -193,8 +191,18 @@ class MessageBuilder
             header('To: '.implode(',', $this->recipientNumbers));
         }
 
-        header('BotApi-Version: '.BOTAPI_VERSION);
+        header('BotApi-Version: '.self::BOTAPI_VERSION);
 
         echo $this->getProtocolMessage();
     }
 }
+
+/**
+ * Baza dla wszystkich wyjątków.
+ */
+class MessageBuilderException extends Exception {}
+
+/**
+ * Wyjątki.
+ */
+class UnableToSendImageException extends MessageBuilderException {}
