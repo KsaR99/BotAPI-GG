@@ -126,8 +126,6 @@ class PushConnection
             return;
         }
 
-        $descrIsEmpty = empty($descr);
-
         switch ($status) {
             case self::STATUS_AWAY: $h = empty($desc) ? 3 : 5; break;
             case self::STATUS_FFC: $h = empty($desc) ? 23 : 24; break;
