@@ -127,11 +127,11 @@ class PushConnection
         }
 
         switch ($status) {
-            case self::STATUS_AWAY: $h = empty($desc) ? 3 : 5; break;
-            case self::STATUS_FFC: $h = empty($desc) ? 23 : 24; break;
-            case self::STATUS_BACK: $h = empty($desc) ? 2 : 4; break;
-            case self::STATUS_DND: $h = empty($desc) ? 33 : 34; break;
-            case self::STATUS_INVISIBLE: $h = empty($desc) ? 20 : 22; break;
+            case self::STATUS_AWAY: $h = empty($descr) ? 3 : 5; break;
+            case self::STATUS_FFC: $h = empty($descr) ? 23 : 24; break;
+            case self::STATUS_BACK: $h = empty($descr) ? 2 : 4; break;
+            case self::STATUS_DND: $h = empty($desrc) ? 33 : 34; break;
+            case self::STATUS_INVISIBLE: $h = empty($descr) ? 20 : 22; break;
             default: $h = 0;
         }
 
@@ -289,6 +289,7 @@ class BotAPIAuthorization
     private function getData($ggid, $userName, $password)
     {
         $ch = curl_init();
+
         curl_setopt_array($ch, [
             CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/getToken/'.$ggid,
             CURLOPT_USERPWD => $userName.':'.$password,
