@@ -264,6 +264,7 @@ class PushConnection
         ]);
 
         $r = curl_exec($ch);
+
         curl_close($ch);
 
         return strpos($r, '<status>1</status>') !== false;
