@@ -164,6 +164,7 @@ class PushConnection
     private function getSingleCurlHandle()
     {
         $ch = curl_init();
+
         curl_setopt_array($ch, [
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_SSL_VERIFYPEER => false,
@@ -187,6 +188,7 @@ class PushConnection
     private function imageCurl($type, $post)
     {
         $ch = $this->getSingleCurlHandle();
+
         curl_setopt_array($ch, [
             CURLOPT_URL => "https://botapi.gadu-gadu.pl/botmaster/{$type}Image/{$this->gg}",
             CURLOPT_POSTFIELDS => $post,
@@ -289,7 +291,6 @@ class BotAPIAuthorization
     private function getData($ggid, $userName, $password)
     {
         $ch = curl_init();
-
         curl_setopt_array($ch, [
             CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/getToken/'.$ggid,
             CURLOPT_USERPWD => $userName.':'.$password,
@@ -328,14 +329,3 @@ class BotAPIAuthorization
         return $this->data;
     }
 }
-
-/**
- * Baza dla wszystkich wyjątków.
- */
-class PushConnectionException extends Exception {}
-
-/**
- * Wyjątki.
- */
-class UnableToSetStatusExteption extends PushConnectionException {}
-class UnableToSendMessageException extends PushConnectionException {}
