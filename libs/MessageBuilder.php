@@ -27,7 +27,7 @@ class MessageBuilder
     /**
      * Lista odbiorców ( numery GG )
      */
-    public $recipientNumbers = [];
+    public $recipientNumbers = null;
 
     public $html = '';
     public $text = '';
@@ -49,7 +49,7 @@ class MessageBuilder
      */
     public function clear()
     {
-        $this->recipientNumbers = [];
+        $this->recipientNumbers = null;
 
         $this->html = '';
         $this->text = '';
@@ -187,7 +187,7 @@ class MessageBuilder
      */
     public function reply()
     {
-        if (!empty($this->recipientNumbers)) {
+        if ($this->recipientNumbers !== null) {
             header('To: '.implode(',', $this->recipientNumbers));
         }
 
@@ -196,13 +196,3 @@ class MessageBuilder
         echo $this->getProtocolMessage();
     }
 }
-
-/**
- * Baza dla wszystkich wyjątków.
- */
-class MessageBuilderException extends Exception {}
-
-/**
- * Wyjątki.
- */
-class UnableToSendImageException extends MessageBuilderException {}
