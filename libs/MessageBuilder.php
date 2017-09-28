@@ -2,13 +2,15 @@
 
 /**
  * Biblioteka implementująca BotAPI GG <https://boty.gg.pl>
+ * Wymagane: PHP 5.6+, php-cURL.
+ *
  * Copyright (C) 2013-2016 Xevin Consulting Limited Marcin Bagiński <marcin.baginski@firma.gg.pl>
  * Modified by KsaR 2016-2017 <https://github.com/KsaR99/>
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,12 +21,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  */
 
-const BOTAPI_VERSION = 'GGBotAPI-3.0;PHP-'.PHP_VERSION;
-const IMG_FILE = true;
-const IMG_RAW = false;
-
-require_once __DIR__.'/PushConnection.php';
-
 /**
  * @brief Reprezentacja wiadomości
  */
@@ -33,11 +29,15 @@ class MessageBuilder
     /**
      * Lista odbiorców ( numery GG )
      */
-    public $recipientNumbers = [];
+    public $recipientNumbers = null;
 
     public $html = '';
     public $text = '';
     public $format = null;
+
+    const BOTAPI_VERSION = 'GGBotAPI-3.1;PHP-'.PHP_VERSION;
+    const IMG_FILE = true;
+    const IMG_RAW = false;
 
     /**
      * Konstruktor MessageBuilder
@@ -51,7 +51,7 @@ class MessageBuilder
      */
     public function clear()
     {
-        $this->recipientNumbers = [];
+        $this->recipientNumbers = null;
 
         $this->html = '';
         $this->text = '';
@@ -129,30 +129,27 @@ class MessageBuilder
      *
      * @return MessageBuilder this
      */
-    public function addImage($path, $isFile = IMG_FILE)
+    public function addImage($path, $isFile = self::IMG_FILE)
     {
-        if (empty(PushConnection::$lastAuthorization)) {
-            throw new Exception('Użyj klasy PushConnection');
-        }
-
-        $content = '';
-
-        if ($isFile) {
-            $content .= file_get_contents($path);
-        }
-
-        $crc = crc32($content);
-        $contentLength = strlen($content);
-        $hash = sprintf('%08x%08x', $crc, $contentLength);
-
         $p = new PushConnection;
+        $p->authorize();
+
+        if (!PushConnection::$authorization->isAuthorized()) {
+            throw new MessageBuilderException("Użyj 'PushConnection' przed użyciem ".__METHOD__);
+        }
+
+        $content = file_get_contents($path);
+        $crc = crc32($content);
+        $length = strlen($content);
+        $hash = sprintf('%08x%08x', $crc, $length);
 
         if (!$p->existsImage($hash) && !$p->putImage($content)) {
-            throw new Exception('Nie udało się wysłać obrazka');
+            throw new UnableToSendImageException('Nie udało się wysłać obrazka');
         }
 
-        $this->format.= pack('vCCCVV', strlen($this->text), 0x80, 0x09, 0x01, $contentLength, $crc);
-        $this->addRawHtml('<img name="'.$hash.'">');
+        $this
+            ->addRawHtml('<img name="'.$hash.'">')
+            ->format .= pack('vCCCVV', strlen($this->text), 0x80, 0x09, 0x01, $length, $crc);
 
         return $this;
     }
@@ -178,10 +175,13 @@ class MessageBuilder
     {
         $formatLen = strlen($this->format);
 
-        return pack('VVVV', strlen($this->html)+1, strlen($this->text)+1, 0,
-          (empty($this->format) ? 0 : $formatLen+3)).$this->html."\0$this->text\0".
-          (empty($this->format) ? '' : pack('Cv', 0x02, $formatLen).$this->format
-        );
+        return pack('VVVV',
+            strlen($this->html)+1,
+            strlen($this->text)+1,
+            0,
+            ($formatLen ? $formatLen+3 : 0))
+            .  $this->html."\0$this->text\0"
+            . ($formatLen ? pack('Cv', 0x02, $formatLen).$this->format : '');
     }
 
     /**
@@ -189,11 +189,11 @@ class MessageBuilder
      */
     public function reply()
     {
-        if (!empty($this->recipientNumbers)) {
+        if ($this->recipientNumbers !== null) {
             header('To: '.implode(',', $this->recipientNumbers));
         }
 
-        header('BotApi-Version: '.BOTAPI_VERSION);
+        header('BotApi-Version: '.self::BOTAPI_VERSION);
 
         echo $this->getProtocolMessage();
     }
