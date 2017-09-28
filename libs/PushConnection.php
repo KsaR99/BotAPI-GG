@@ -2,13 +2,15 @@
 
 /**
  * Biblioteka implementująca BotAPI GG <https://boty.gg.pl>
+ * Wymagane: PHP 5.6+, php-cURL.
+ *
  * Copyright (C) 2013-2016 Xevin Consulting Limited Marcin Bagiński <marcin.baginski@firma.gg.pl>
  * Modified by KsaR 2016-2017 <https://github.com/KsaR99/>
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,13 +21,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  */
 
-require_once __DIR__.'/MessageBuilder.php';
-
-const CURL_VERBOSE = false; // zmienić na true, jeśli chce się uzyskać dodatkowe informacje debugowe
-
 /**
  * @brief Klasa reprezentująca połączenie PUSH z BotMasterem.
- * Autoryzuje połączenie w trakcie tworzenia i wysyła wiadomości do BotMastera.
  */
 class PushConnection
 {
@@ -34,12 +31,11 @@ class PushConnection
      *
      * Typ BotAPIAuthorization
      */
-    public static $BOTAPI_LOGIN = null;
-    public static $BOTAPI_PASSWORD = null;
-    static $lastGg;
-    static $lastAuthorization;
-    private $authorization;
-    private $gg;
+    public static $authorization;
+    private static $authorizationData;
+
+    public static $BOTAPI_LOGIN;
+    public static $BOTAPI_PASSWORD;
 
     /**
      * Statusy GG
@@ -51,29 +47,41 @@ class PushConnection
     const STATUS_INVISIBLE = 'invisible';
 
     /**
-     * Konstruktor PushConnection - przeprowadza autoryzację
-     *
-     * @param int $botGGNumber numer GG bota
-     * @param string $userName login
-     * @param string $password hasło
+     * Curl debug
+     * domyślnie: false
      */
-    public function __construct($botGGNumber = null, $userName = null, $password = null)
+    const CURL_VERBOSE = false;
+
+    /**
+     * Konstruktor PushConnection - inicjuje dane autoryzacji
+     *
+     * @param int $gg Numer GG bota
+     * @param string $email Login
+     * @param string $pass Hasło
+     */
+    public function __construct($gg = null, $email = null, $pass = null)
     {
-        if (empty(self::$lastAuthorization) || !self::$lastAuthorization->isAuthorized()
-        || ($botGGNumber !== self::$lastGg && $botGGNumber !== null)) {
-            if ($userName === null && self::$BOTAPI_LOGIN !== null) {
-                $userName = self::$BOTAPI_LOGIN;
-            }
-            if ($password === null && self::$BOTAPI_PASSWORD !== null) {
-                $password = self::$BOTAPI_PASSWORD;
-            }
-
-            self::$lastGg = $botGGNumber;
-            self::$lastAuthorization = new BotAPIAuthorization(self::$lastGg, $userName, $password);
+        if (self::$authorizationData === null) {
+            self::$authorizationData = [
+                'gg' => $gg,
+                'email' => ($email !== null && self::$BOTAPI_LOGIN === null) ? $email : self::$BOTAPI_LOGIN,
+                'pass' => ($pass !== null && self::$BOTAPI_PASSWORD === null) ? $pass : self::$BOTAPI_PASSWORD
+            ];
         }
+    }
 
-        $this->gg = self::$lastGg;
-        $this->authorization = self::$lastAuthorization;
+    /**
+     * Autoryzuje bota.
+     */
+    public function authorize()
+    {
+        if (self::$authorization === null && self::$authorizationData !== null) {
+            self::$authorization = new BotAPIAuthorization(
+                self::$authorizationData['gg'],
+                self::$authorizationData['email'],
+                self::$authorizationData['pass']
+            );
+        }
     }
 
     /**
@@ -83,27 +91,32 @@ class PushConnection
      */
     public function push($messages)
     {
-        if (!$this->authorization->isAuthorized()) {
+        $this->authorize();
+
+        if (!self::$authorization->isAuthorized()) {
             return false;
         }
+
         if (!is_array($messages)) {
             $messages = [$messages];
         }
 
-        $data = $this->authorization->getServerAndToken();
+        $data = self::$authorization->getServerAndToken();
 
         foreach ($messages as $message) {
             $ch = $this->getSingleCurlHandle();
+
             curl_setopt_array($ch, [
-                CURLOPT_URL => 'https://'.$data['server'].'/sendMessage/'.$this->gg,
-                CURLOPT_POSTFIELDS => 'msg='.urlencode($message->getProtocolMessage()).'&to='.implode(',', $message->recipientNumbers),
-                CURLOPT_HEADER => false,
+                CURLOPT_URL => 'https://'.$data['server'].'/sendMessage/'.self::$authorizationData['gg'],
+                CURLOPT_POSTFIELDS => 'msg='.urlencode($message->getProtocolMessage())
+                                    . '&to='.implode(',', (array)$message->recipientNumbers),
                 CURLOPT_HTTPHEADER => [
-                    'BotApi-Version: '.BOTAPI_VERSION,
+                    'BotApi-Version: '.MessageBuilder::BOTAPI_VERSION,
                     'Token: '.$data['token']
             ]]);
 
             $r = curl_exec($ch);
+
             curl_close($ch);
 
             if (strpos($r, '<status>0</status>') === false) {
@@ -120,38 +133,38 @@ class PushConnection
      */
     public function setStatus($descr, $status = '')
     {
-        if (!$this->authorization->isAuthorized()) {
+        $this->authorize();
+
+        if (!self::$authorization->isAuthorized()) {
             return;
         }
 
-        $descrIsEmpty = empty($descr);
-
         switch ($status) {
-            case self::STATUS_AWAY: $h = empty($desc) ? 3 : 5; break;
-            case self::STATUS_FFC: $h = empty($desc) ? 23 : 24; break;
-            case self::STATUS_BACK: $h = empty($desc) ? 2 : 4; break;
-            case self::STATUS_DND: $h = empty($desc) ? 33 : 34; break;
-            case self::STATUS_INVISIBLE: $h = empty($desc) ? 20 : 22; break;
+            case self::STATUS_AWAY: $h = empty($descr) ? 3 : 5; break;
+            case self::STATUS_FFC: $h = empty($descr) ? 23 : 24; break;
+            case self::STATUS_BACK: $h = empty($descr) ? 2 : 4; break;
+            case self::STATUS_DND: $h = empty($desrc) ? 33 : 34; break;
+            case self::STATUS_INVISIBLE: $h = empty($descr) ? 20 : 22; break;
             default: $h = 0;
         }
 
-        $data = $this->authorization->getServerAndToken();
+        $data = self::$authorization->getServerAndToken();
         $ch = $this->getSingleCurlHandle();
 
         curl_setopt_array($ch, [
-            CURLOPT_URL => 'https://'.$data['server'].'/setStatus/'.$this->gg,
-            CURLOPT_POSTFIELDS => 'status='.$h.'&desc='.urlencode($descr),
-            CURLOPT_HEADER => false,
+            CURLOPT_URL => 'https://'.$data['server'].'/setStatus/'.self::$authorizationData['gg'],
+            CURLOPT_POSTFIELDS => "status={$h}&desc=".urlencode($descr),
             CURLOPT_HTTPHEADER => [
-                'BotApi-Version: '.BOTAPI_VERSION,
+                'BotApi-Version: '.MessageBuilder::BOTAPI_VERSION,
                 'Token: '.$data['token']
             ]
         ]);
 
-        $res = curl_exec($ch);
+        $result = curl_exec($ch);
+
         curl_close($ch);
 
-        if (strpos($res, '<status>0</status>') === false) {
+        if (strpos($result, '<status>0</status>') === false) {
             throw new UnableToSetStatusExteption('Niepowodzenie ustawiania statusu.');
         }
     }
@@ -164,6 +177,7 @@ class PushConnection
     private function getSingleCurlHandle()
     {
         $ch = curl_init();
+
         curl_setopt_array($ch, [
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_SSL_VERIFYPEER => false,
@@ -174,8 +188,8 @@ class PushConnection
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_BINARYTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_HEADER => true,
-            CURLOPT_VERBOSE => CURL_VERBOSE
+            CURLOPT_HEADER => false,
+            CURLOPT_VERBOSE => self::CURL_VERBOSE
         ]);
 
         return $ch;
@@ -187,20 +201,23 @@ class PushConnection
     private function imageCurl($type, $post)
     {
         $ch = $this->getSingleCurlHandle();
+
         curl_setopt_array($ch, [
-            CURLOPT_URL => "https://botapi.gadu-gadu.pl/botmaster/{$type}Image/{$this->gg}",
+            CURLOPT_URL => "https://botapi.gadu-gadu.pl/botmaster/{$type}Image/".self::$authorizationData['gg'],
             CURLOPT_POSTFIELDS => $post,
+            CURLOPT_HEADER => true,
             CURLOPT_HTTPHEADER => [
-                'BotApi-Version: '.BOTAPI_VERSION,
-                'Token: '.$this->authorization->getServerAndToken()['token'],
+                'BotApi-Version: '.MessageBuilder::BOTAPI_VERSION,
+                'Token: '.self::$authorization->getServerAndToken()['token'],
                 'Expect: '
             ]
         ]);
 
-        $r = curl_exec($ch);
+        $result = curl_exec($ch);
+
         curl_close($ch);
 
-        return $r;
+        return $result;
     }
 
     /**
@@ -208,9 +225,11 @@ class PushConnection
      */
     public function putImage($data)
     {
-        return ($this->authorization->isAuthorized()) ?
-          strpos($this->imageCurl('put', $data), '<status>0</status>') !== false :
-          false;
+        $this->authorize();
+
+        return (self::$authorization->isAuthorized())
+            ? strpos($this->imageCurl('put', $data), '<status>0</status>') !== false
+            : false;
     }
 
     /**
@@ -218,9 +237,11 @@ class PushConnection
      */
     public function getImage($hash)
     {
-        return ($this->authorization->isAuthorized()) ?
-          explode("\r\n\r\n", $this->imageCurl('get', 'hash='.$hash), 2)[1] :
-          false;
+        $this->authorize();
+
+        return (self::$authorization->isAuthorized())
+            ? explode("\r\n\r\n", $this->imageCurl('get', 'hash='.$hash), 2)[1]
+            : false;
     }
 
     /**
@@ -228,9 +249,11 @@ class PushConnection
      */
     public function existsImage($hash)
     {
-        return ($this->authorization->isAuthorized()) ?
-          strpos($this->imageCurl('exists', 'hash='.$hash), '<status>0</status>') !== false :
-          false;
+        $this->authorize();
+
+        return (self::$authorization->isAuthorized())
+            ? strpos($this->imageCurl('exists', 'hash='.$hash), '<status>0</status>') !== false
+            : false;
     }
 
     /**
@@ -238,103 +261,27 @@ class PushConnection
      */
     public function isBot($ggid)
     {
-        if (!$this->authorization->isAuthorized()) {
+        $this->authorize();
+
+        if (!self::$authorization->isAuthorized()) {
             return false;
         }
 
         $ch = $this->getSingleCurlHandle();
+
         curl_setopt_array($ch, [
-            CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/isBot/'.$this->gg,
+            CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/isBot/'.self::$authorizationData['gg'],
             CURLOPT_POSTFIELDS => 'check_ggid='.$ggid,
-            CURLOPT_HEADER => false,
             CURLOPT_HTTPHEADER => [
-                'BotApi-Version: '.BOTAPI_VERSION,
-                'Token: '.$this->authorization->getServerAndToken()['token']
+                'BotApi-Version: '.MessageBuilder::BOTAPI_VERSION,
+                'Token: '.self::$authorization->getServerAndToken()['token']
             ]
         ]);
 
-        $r = curl_exec($ch);
+        $result = curl_exec($ch);
+
         curl_close($ch);
 
-        return strpos($r, '<status>1</status>') !== false;
+        return strpos($result, '<status>1</status>') !== false;
     }
 }
-
-/**
- * Pomocnicza klasa do autoryzacji przez HTTP
- */
-class BotAPIAuthorization
-{
-    private $data = [
-        'token' => null,
-        'server' => null,
-        'port' => null
-    ];
-
-    private $isValid;
-
-    /**
-     * @return bool true jeśli autoryzacja przebiegła prawidłowo
-     */
-    public function isAuthorized()
-    {
-        return $this->isValid;
-    }
-
-    public function __construct($ggid, $userName, $password)
-    {
-        $this->isValid = $this->getData($ggid, $userName, $password);
-    }
-
-    private function getData($ggid, $userName, $password)
-    {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => 'https://botapi.gadu-gadu.pl/botmaster/getToken/'.$ggid,
-            CURLOPT_USERPWD => $userName.':'.$password,
-            CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_VERBOSE => CURL_VERBOSE,
-            CURLOPT_HTTPHEADER => ['BotApi-Version: '.BOTAPI_VERSION],
-        ]);
-
-        $xml = curl_exec($ch);
-        curl_close($ch);
-
-        $regexp = '~<token>(.+?)</token><server>(.+?)</server><port>(\d+)</port>~';
-
-        if (!preg_match($regexp, $xml, $out)) {
-            return false;
-        }
-
-        $this->data = [
-            'token' => $out[1],
-            'server' => $out[2],
-            'port' => $out[3]
-        ];
-
-        return true;
-    }
-
-    /**
-     * Pobiera aktywny token, port i adres BotMastera
-     *
-     * @return array
-     */
-    public function getServerAndToken()
-    {
-        return $this->data;
-    }
-}
-
-/**
- * Baza dla wszystkich wyjątków.
- */
-class PushConnectionException extends Exception {}
-
-/**
- * Wyjątki.
- */
-class UnableToSetStatusExteption extends PushConnectionException {}
-class UnableToSendMessageException extends PushConnectionException {}
