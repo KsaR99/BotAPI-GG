@@ -41,6 +41,7 @@ v.3.0:
 v.3.1:
 
 * Optymalizacje
+* Refactoring obsługi autoryzacji
 * Poprawki formatowania
 * Lepsze wsparcie dla autoloadingu. (wydzielono wyjątki itp do oddzielnych plików) oraz klasy nie includują już same siebie.
  ***Nowe pliki do bibliotek:***
