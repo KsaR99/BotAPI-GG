@@ -3,7 +3,7 @@
 
 ---
 
-v.2.5:
+#### v.2.5:
 
 * Wymagane PHP 5.4+
 * Optymalizacje
@@ -12,7 +12,7 @@ v.2.5:
 
 ----
 
-v.3.0:
+#### v.3.0:
 
 * Wymagane PHP 5.6+
 
@@ -38,7 +38,7 @@ v.3.0:
 
 ----
 
-v.3.1:
+#### v.3.1:
 
 * Optymalizacje
 * Refactoring obsługi autoryzacji
