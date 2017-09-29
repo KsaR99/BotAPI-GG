@@ -31,9 +31,9 @@ class MessageBuilder
      */
     public $recipientNumbers = null;
 
-    public $html = '';
-    public $text = '';
-    public $format = null;
+    private $html = '';
+    private $text = '';
+    private $format = null;
 
     const BOTAPI_VERSION = 'GGBotAPI-3.1;PHP-'.PHP_VERSION;
     const IMG_FILE = true;
@@ -61,7 +61,7 @@ class MessageBuilder
     /**
      * Dodaje tekst do wiadomości
      *
-     * @param string $text tekst do wysłania
+     * @param string $text Tekst do wysłania
      *
      * @return MessageBuilder this
      */
@@ -82,7 +82,7 @@ class MessageBuilder
     /**
      * Dodaje tekst do wiadomości
      *
-     * @param string $html tekst do wysłania w HTMLu
+     * @param string $html Tekst do wysłania w HTMLu
      *
      * @return MessageBuilder this
      */
@@ -96,7 +96,7 @@ class MessageBuilder
     /**
      * Ustawia tekst do wiadomości
      *
-     * @param string $html tekst do wysłania w HTMLu
+     * @param string $html Tekst do wysłania w HTMLu
      *
      * @return MessageBuilder this
      */
@@ -110,7 +110,7 @@ class MessageBuilder
     /**
      * Ustawia tekst wiadomości alternatywnej
      *
-     * @param string $message tekst do wysłania dla GG 7.7 i starszych
+     * @param string $message Tekst do wysłania dla GG 7.7 i starszych
      *
      * @return MessageBuilder this
      */
@@ -125,11 +125,12 @@ class MessageBuilder
     /**
      * Dodaje obraz do wiadomości
      *
-     * @param string $path ścieżka do pliku graficznego
-     *
+     * @param string $pathOrContent Ścieżka do pliku graficznego/zawartość
+     * @param bool $isPath Wskazuje czy obrazek/ścieżka do obrazka
+     * 
      * @return MessageBuilder this
      */
-    public function addImage($path, $isFile = self::IMG_FILE)
+    public function addImage($pathOrContent, $isPath = self::IMG_FILE)
     {
         $p = new PushConnection;
         $p->authorize();
@@ -138,7 +139,12 @@ class MessageBuilder
             throw new MessageBuilderException("Użyj 'PushConnection' przed użyciem ".__METHOD__);
         }
 
-        $content = file_get_contents($path);
+        if ($isPath) {
+            $content = file_get_contents($pathOrContent);
+        } else {
+            $content =& $pathOrContent;
+        }
+
         $crc = crc32($content);
         $length = strlen($content);
         $hash = sprintf('%08x%08x', $crc, $length);
@@ -185,7 +191,7 @@ class MessageBuilder
     }
 
     /**
-     * Zwraca na wyjście sformatowaną wiadomość do wysłania do BotMastera
+     * Zwraca sformatowaną wiadomość do wysłania do BotMastera
      */
     public function reply()
     {
