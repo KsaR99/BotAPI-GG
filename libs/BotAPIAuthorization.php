@@ -18,10 +18,10 @@ class BotAPIAuthorization
 
     public function __construct($gg, $email, $pass)
     {
-        $this->isValid = $this->getData($gg, $email, $pass);
+        $this->isValid = $this->authorize($gg, $email, $pass);
     }
 
-    private function getData($gg, $email, $pass)
+    private function authorize($gg, $email, $pass)
     {
         $ch = curl_init();
 
@@ -39,11 +39,10 @@ class BotAPIAuthorization
 
         curl_close($ch);
 
-        if (preg_match('~<token>(.+?)</token><server>(.+?)</server><port>(\d{2,5})</port>~', $xml, $data)) {
+        if (preg_match('~<token>(.+?)</token><server>(.+?)</server>~', $xml, $data)) {
             $this->data = [
                 'token' => $data[1],
-                'server' => $data[2],
-                'port' => $data[3]
+                'server' => $data[2]
             ];
 
             return true;
@@ -53,12 +52,18 @@ class BotAPIAuthorization
     }
 
     /**
-     * Pobiera aktywny token, port i adres BotMastera
+     * Zwraca aktywny token/adres BotMastera
      *
      * @return array
      */
-    public function getServerAndToken()
+    public function getData(...$args)
     {
-        return $this->data;
+        $data = [];
+
+        foreach ($args as $arg) {
+            $data[$arg] = $this->data[$arg];
+        }
+
+        return $data;
     }
 }
