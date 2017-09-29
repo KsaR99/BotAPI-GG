@@ -59,7 +59,7 @@
 #### Metody:
  ***`addImage()`***
   * Rzucanie wyjątku `UnableToSendImageException` wrazie niepowodzenia.
-  * Naprawiono wywołanie `addImage('zawartość obrazka', false);`
+  * Naprawiono wywołanie `addImage('zawartość obrazka', MessageBuilder::IMG_RAW);`
 
 ### PushConnection
 * Stała `CURL_VERBOSE` przeniesiona do klasy.
