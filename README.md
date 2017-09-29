@@ -29,11 +29,11 @@
 #### Ogólne:
  * Stałe lokalne `STATUS_*` przeniesione do klasy, można się do ich zewnętrznie odwołać używając `PushConnection::STATUS_*`
 #### Metody:
- ***push()***
+ ***`push()`***
   * Rzucanie wyjątku klasy `UnableToSendMessageException` w przypadku niepowodzenia.
   * skasowano `$message->sendToOffline` (nie działa już)
 
- ***setStatus()***
+ ***`setStatus()`***
  * Rzucanie wyjątku klasy `UnableToSetStatusExteption` w przypadku niepowodzenia.
 
 ----
@@ -41,7 +41,7 @@
 #### v.3.1:
 
 * Optymalizacje
-* Refactoring obsługi autoryzacji
+* Refactoringi
 * Poprawki formatowania
 * Lepsze wsparcie dla autoloadingu. (wydzielono wyjątki itp do oddzielnych plików) oraz klasy nie includują już same siebie.
  ***Nowe pliki do bibliotek:***
@@ -57,8 +57,9 @@
 * Stałe `BOTAPI_VERSION`, `IMG_RAW`, `IMG_FILE` przeniesione do klasy.
 * Nowe wyjątki które można złapać przez `MessageBuilderException`;
 #### Metody:
- ***addImage()***
+ ***`addImage()`***
   * Rzucanie wyjątku `UnableToSendImageException` wrazie niepowodzenia.
+  * Naprawiono wywołanie `addImage('zawartość obrazka', false);`
 
 ### PushConnection
 * Stała `CURL_VERBOSE` przeniesiona do klasy.
