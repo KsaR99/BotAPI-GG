@@ -1,7 +1,7 @@
 <?php
 
 spl_autoload_register(function($class) {
-    include __DIR__."/../../../libs/{$class}.php";
+    require __DIR__."/sciezka_do_bibliotek/{$class}.php";
 });
 
 $m = new MessageBuilder;
