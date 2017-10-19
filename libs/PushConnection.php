@@ -175,7 +175,6 @@ class PushConnection
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 5,
             CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_BINARYTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_HEADER => false,
             CURLOPT_VERBOSE => self::CURL_VERBOSE
